@@ -4,14 +4,11 @@ package io.phdata.pulse.logcollector.util
 
 import java.io.File
 import java.net.{ InetSocketAddress, Socket }
-import java.sql.Timestamp
-import java.text.SimpleDateFormat
 import java.util.Properties
 
 import com.typesafe.scalalogging.LazyLogging
 import kafka.server.{ KafkaConfig, KafkaServerStartable }
-import org.apache.commons.io.FileUtils
-import org.apache.kafka.clients.producer.{ KafkaProducer, ProducerRecord, ProducerConfig}
+import org.apache.kafka.clients.producer.{ KafkaProducer, ProducerConfig, ProducerRecord }
 import org.apache.zookeeper.server.{ ServerCnxnFactory, ZooKeeperServer }
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog
 
@@ -19,37 +16,39 @@ case class ZooKafkaConfig(
     kafkaBrokerHost: String = "localhost",
     kafkaBrokerPort: Int = 11111,
     kafkaBroker: Int = 0,
-    kafkaTempDir: String = "log-collector/target/embedded/kafka/" + new SimpleDateFormat(
-      "yyyyMMdd'T'hhmmss").format(new Timestamp(System.currentTimeMillis())),
+    kafkaTempDir: String = s"log-collector/target/embedded/kafka/${System.currentTimeMillis()}",
     zookeeperConnectionString: String = "localhost:12345",
-    zookeeperDir: String = "log-collector/target/embedded/zookeeper/" + new SimpleDateFormat(
-      "yyyyMMdd'T'hhmmss").format(new Timestamp(System.currentTimeMillis())),
+    zookeeperDir: String = s"log-collector/target/embedded/zookeeper/${System.currentTimeMillis()}",
     zookeeperPort: Int = 12345,
     zookeeperMinSessionTimeout: Int = 10000,
     zookeeperMaxSessionTimeout: Int = 30000)
 
 class KafkaMiniCluster(config: ZooKafkaConfig) {
 
-  private val zookeeper                       = new Zookeeper
-  private val kafka                           = new Kafka
-  private val services: Seq[ListeningProcess] = Seq(zookeeper, kafka)
+  private val zookeeper = new Zookeeper
+  private val kafka     = new Kafka
 
   private val embeddedDir = new File("log-collector/target/embedded")
 
   def start(): Unit = {
-    FileUtils.deleteDirectory(embeddedDir)
-    services.foreach(_.start())
+    zookeeper.start()
+    kafka.start()
   }
 
-  def stop(): Unit =
-    services.foreach(_.stop())
+  def stop(): Unit = {
+    kafka.stop()
+    zookeeper.stop()
+  }
 
   def produceMessages(topic: String, messages: List[String]): Unit = {
     val kafkaProducerProps = new Properties()
 
-    kafkaProducerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + config.kafkaBrokerPort)
-    kafkaProducerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-    kafkaProducerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+    kafkaProducerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                           "localhost:" + config.kafkaBrokerPort)
+    kafkaProducerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                           "org.apache.kafka.common.serialization.StringSerializer")
+    kafkaProducerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                           "org.apache.kafka.common.serialization.StringSerializer")
 
     val producer = new KafkaProducer[String, String](kafkaProducerProps)
 
@@ -79,15 +78,16 @@ class KafkaMiniCluster(config: ZooKafkaConfig) {
       val kafkaConf: KafkaConfig = KafkaConfig.fromProps(kafkaProperties)
 
       //Start local Kafka broker
-      val kafkaServer = new KafkaServerStartable(kafkaConf)
+      kafkaServer = new KafkaServerStartable(kafkaConf)
 
       logger.trace("KAFKA: Starting Kafka on port: " + config.kafkaBrokerPort)
       kafkaServer.startup()
     }
 
-    override def close: Unit = {
+    override def close(): Unit = {
       logger.trace("Stopping Kafka...")
       kafkaServer.shutdown()
+      kafkaServer.awaitShutdown()
     }
   }
 
@@ -111,7 +111,7 @@ class KafkaMiniCluster(config: ZooKafkaConfig) {
       cnxnFactory.join()
     }
 
-    override def close: Unit =
+    override def close(): Unit =
       if (zooKeeperServer != null) {
         logger.trace("Stopping Zookeeper...")
         zooKeeperServer.shutdown()
@@ -136,7 +136,7 @@ trait ListeningProcess extends LazyLogging with AutoCloseable {
     logger.info(s"trying to start service $name on port $port")
     thread.start()
 
-    while (!isListening()) {
+    while (!isListening) {
       if (startupDurationMillis > timeoutMillis) {
         throw new Exception("Process startup exceeded configured timeout")
       }
@@ -150,11 +150,11 @@ trait ListeningProcess extends LazyLogging with AutoCloseable {
     logger.info(s"service $name successfully started")
   }
 
-  private def isListening(): Boolean = {
+  private def isListening: Boolean = {
     var s: Socket = null
     try {
       s = new Socket("localhost", port)
-      return true
+      true
     } catch {
       case e: Exception => false
     } finally {
@@ -168,16 +168,14 @@ trait ListeningProcess extends LazyLogging with AutoCloseable {
     }
   }
 
-  def close(): Unit = {}
+  def close(): Unit
 
-  def stop(): Unit = {
+  def stop(): Unit =
     try {
       close()
     } catch {
       case e: Exception => logger.info(s"Exception closing thread $name", e)
     }
-    thread.interrupt()
-  }
 
   class ProcessRunnable extends Runnable {
     override def run(): Unit = ListeningProcess.this.run()
