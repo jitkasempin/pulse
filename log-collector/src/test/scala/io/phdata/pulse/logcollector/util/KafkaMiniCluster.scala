@@ -1,15 +1,30 @@
-/* Copyright 2018 phData Inc. */
+/*
+ * Copyright 2018 phData Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package io.phdata.pulse.logcollector.util
 
 import java.io.File
-import java.net.{ InetSocketAddress, Socket }
+import java.net.{InetSocketAddress, Socket}
 import java.util.Properties
 
+import com.carrotsearch.ant.tasks.junit4.dependencies.org.apache.commons.io.FileUtils
 import com.typesafe.scalalogging.LazyLogging
-import kafka.server.{ KafkaConfig, KafkaServerStartable }
-import org.apache.kafka.clients.producer.{ KafkaProducer, ProducerConfig, ProducerRecord }
-import org.apache.zookeeper.server.{ ServerCnxnFactory, ZooKeeperServer }
+import kafka.server.{KafkaConfig, KafkaServerStartable}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.zookeeper.server.{ServerCnxnFactory, ZooKeeperServer}
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog
 
 case class ZooKafkaConfig(
@@ -31,6 +46,7 @@ class KafkaMiniCluster(config: ZooKafkaConfig) {
   private val embeddedDir = new File("log-collector/target/embedded")
 
   def start(): Unit = {
+    FileUtils.deleteDirectory(embeddedDir)
     zookeeper.start()
     kafka.start()
   }

@@ -21,8 +21,6 @@
     <fields>
         <field name="id" type="string" indexed="true" stored="true" required="false"
                multiValued="false"/>
-        <field name="application" type="string" indexed="true" stored="true" required="false"
-               multiValued="false"/>
         <field name="category" type="text_general" indexed="true" stored="true" required="true"
                multiValued="false"/>
         <field name="timestamp" type="date" indexed="true" stored="true" required="true"
@@ -67,7 +65,6 @@
     <uniqueKey>id</uniqueKey>
 
     <copyField source="category" dest="text"/>
-    <copyField source="application" dest="text"/>
     <copyField source="level" dest="text"/>
     <copyField source="message" dest="text"/>
     <copyField source="threadName" dest="text"/>

@@ -1,4 +1,18 @@
-/* Copyright 2018 phData Inc. */
+/*
+ * Copyright 2018 phData Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package io.phdata.pulse.logcollector
 
@@ -61,7 +75,7 @@ class PulseKafkaConsumerTest
   val TOPIC2 = "solr_test2"
 
   // Generates random string JSON messages with given level and unique id
-  val r = scala.util.Random
+  val random = scala.util.Random
   def generateLogMessage(level: String, id: Integer, application: String): String =
     """
       {
@@ -70,7 +84,7 @@ class PulseKafkaConsumerTest
        "timestamp": """" + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
       .format(new Timestamp(System.currentTimeMillis())) + """",
        "level": """" + level + """",
-       "message": """" + s"message ${r.nextInt(10)}" + """",
+       "message": """" + s"message ${random.nextInt(10)}" + """",
        "threadName": """" + s"thread ${Random.alphanumeric take 3 mkString}" + """",
        "throwable": """" + s"Exception in thread ${Random.alphanumeric take 3 mkString}" + """",
        "properties": """ + "{\"key\":\"value\"}" + """,
