@@ -65,7 +65,7 @@ public class HttpAppender extends AppenderSkeleton {
   /**
    * Does appender block when buffer is full.
    */
-  private boolean blocking = true;
+  private boolean blocking = false;
 
   private String hostname = null;
   private Thread dispatcher;
